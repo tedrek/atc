@@ -1,0 +1,14 @@
+{
+  "name": "Alaskan Airlines",
+  "icao": "ASA",
+  "callsign": {
+    "name": "Alaskan",
+    "length": 3
+  },
+  "aircraft": [
+    ["B734", 26],
+    ["B737", 14],
+    ["B738", 61],
+    ["B739", 39]
+  ]
+}

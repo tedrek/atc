@@ -291,6 +291,16 @@ function canvas_draw_aircraft(cc, aircraft) {
     cc.arc(0, 0, round(size * 1.5), 0, Math.PI * 2);
     cc.fill();
 
+    cc.strokeStyle = "rgba(255, 255, 255, 0.5)";
+    cc.beginPath();
+    cc.arc(0, 0, km(4.8), 0, Math.PI * 2);
+    cc.stroke();
+
+    cc.strokeStyle = "rgba(255, 255, 255, 0.3)";
+    cc.beginPath();
+    cc.arc(0, 0, km(8), 0, Math.PI * 2);
+    cc.stroke();
+
     cc.restore();
 
   }
@@ -338,8 +348,44 @@ function canvas_draw_all_aircraft(cc) {
 }
 
 function canvas_draw_info(cc, aircraft) {
+  if(!aircraft.isVisible()) {
+    aircraft.infobox.first().css({
+      visibility: 'hidden'
+    });
+    return;
+  }
 
-  if(!aircraft.isVisible()) return;
+  aircraft.infobox.first().css({
+    visibility: 'visible',
+    left: round(km(aircraft.position[0])) +
+      aircraft.infob.offset.left +
+      round(cc.canvas.width / 2) +
+      prop.canvas.panX + 'px',
+    top: -round(km(aircraft.position[1])) +
+      aircraft.infob.offset.top +
+      round(cc.canvas.height / 2) +
+      prop.canvas.panY + 'px'});
+
+  var text = aircraft.getCallsign() + '<br>' +
+    lpad(round(aircraft.altitude * 0.01), 2) + ' ';
+
+  if(aircraft.trend != 0) {
+    if(aircraft.trend < 0) {
+      if(aircraft.requested.expedite && aircraft.mode != "landing") {
+        text += '&#8609;';
+      } else text += '&darr;';
+    } else if(aircraft.trend > 0) {
+      if(aircraft.requested.expedite && aircraft.mode != "landing") {
+        text += '&#8607;';
+      } else text += '&uarr;';
+    }
+  }
+  else text += '-';
+
+  text += ' ' + lpad(round(aircraft.speed * 0.1), 2);
+
+  aircraft.infobox.first().html(text);
+  return;
 
   if(!aircraft.hit) {
     cc.save();
@@ -678,6 +724,12 @@ function canvas_update_post() {
     canvas_draw_ctr(cc);
     cc.restore();
 
+    cc.save();
+    cc.globalAlpha = alpha;
+    cc.translate(round(prop.canvas.size.width/2), round(prop.canvas.size.height/2));
+    canvas_draw_runway_labels(cc);
+    cc.restore();
+
     // Compass
 
     cc.font = "bold 10px monoOne, monospace";
@@ -689,15 +741,6 @@ function canvas_update_post() {
       cc.restore();
     }
 
-    cc.font = "10px monoOne, monospace";
-    cc.save();
-    cc.globalAlpha = alpha;
-    cc.translate(round(prop.canvas.size.width/2), round(prop.canvas.size.height/2));
-    canvas_draw_all_info(cc);
-
-    cc.restore();
-
-
     if(prop.canvas.dirty || canvas_should_draw() || true) {
       cc.save();
       cc.globalAlpha = alpha;
@@ -706,10 +749,12 @@ function canvas_update_post() {
       cc.restore();
     }
 
+    cc.font = "10px monoOne, monospace";
     cc.save();
     cc.globalAlpha = alpha;
     cc.translate(round(prop.canvas.size.width/2), round(prop.canvas.size.height/2));
-    canvas_draw_runway_labels(cc);
+    canvas_draw_all_info(cc);
+
     cc.restore();
 
     cc.save();

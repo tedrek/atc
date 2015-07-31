@@ -182,6 +182,41 @@ var Aircraft=Fiber.extend(function() {
 
       this.parse(options);
 
+      this.infob = {
+        offset: {
+          top: 0,
+          left: 0
+        },
+        start_offset: {
+          top: 0,
+          left: 0
+        }
+      };
+      this.infobox = $("<div class='info-box'>" + this.getCallsign()+"</div>");
+      this.infobox.click(this, function(e) {
+        input_select(e.data.getCallsign());
+      });
+      this.infobox.first().css({
+        position: 'absolute',
+        left: round(km(this.position[0])) +
+          round(prop.canvas.contexts['aircraft'].canvas.width / 2) +
+          prop.canvas.panX + 'px',
+        top: -round(km(this.position[1])) +
+          round(prop.canvas.contexts['aircraft'].canvas.height / 2) +
+          prop.canvas.panY + 'px'});
+
+      var ac = this;
+      this.infobox.draggable({
+        start: function (e, ui) {
+          ac.infob.start_offset = ui.offset;
+        },
+        stop: function (e, ui) {
+          ac.infob.offset.top -= ac.infob.start_offset.top - ui.offset.top;
+          ac.infob.offset.left -= ac.infob.start_offset.left - ui.offset.left;
+        }
+      });
+
+      $("#infoboxes").append(this.infobox);
       this.html = $("<li class='strip'></li>");
 
       this.html.append("<span class='callsign'>" + this.getCallsign() + "</span>");
@@ -228,6 +263,7 @@ var Aircraft=Fiber.extend(function() {
 
     },
     cleanup: function() {
+      this.infobox.remove();
       this.html.remove();
     },
     matchCallsign: function(callsign) {
@@ -1081,7 +1117,7 @@ var Aircraft=Fiber.extend(function() {
 
       // Trailling
       if(this.position_history.length == 0) this.position_history.push([this.position[0], this.position[1], game_time()/game_speedup()]);
-      else if(abs((game_time()/game_speedup()) - this.position_history[this.position_history.length-1][2]) > 4/game_speedup()) {
+      else if(abs((game_time()/game_speedup()) - this.position_history[this.position_history.length-1][2]) > 8/game_speedup()) {
         this.position_history.push([this.position[0], this.position[1], game_time()/game_speedup()]);
       }
 

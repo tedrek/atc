@@ -319,6 +319,7 @@ var Airport=Fiber.extend(function() {
 
       aircraft_new({
         category:  "arrival",
+        speed:     250,
         position:  position,
         heading:   arrival.heading + Math.PI,
         altitude:  altitude,

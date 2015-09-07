@@ -844,11 +844,11 @@ var Aircraft=Fiber.extend(function() {
     scoreWind: function(action) {
       var score = 0;
       var components = this.getWind();
-      if (components.cross >= 20) {
+      if (components.cross >= 25) {
         score += 2;
         ui_log(true, this.getCallsign()+' '+action+' with major crosswind');
       }
-      else if (components.cross >= 10) {
+      else if (components.cross >= 15) {
         score += 1;
         ui_log(true, this.getCallsign()+' '+action+' with crosswind');
       }

@@ -473,6 +473,95 @@ zlsa.atc.DepartureWave = zlsa.atc.DepartureCyclic.extend(function(base) {
   };
 });
 
+zlsa.atc.WindRose = Fiber.extend(function(base) {
+  return {
+    init: function(airport, options) {
+      this.airport = airport;
+      this.timeout = null;
+      this.next_direction = 0;
+      this.next_speed = 0;
+      this.direction_weight = 0;
+      this.directions = [];
+
+      this.parse(options);
+
+      this.step_count = 180;
+      this.generateWind();
+      this.airport.wind.angle = this.next_direction;
+      this.airport.wind.speed = this.next_speed;
+      this.updateWind(false);
+    },
+    parse: function(data) {
+      for (var d in data) {
+        var dir = {
+          weight: 0,
+          heading: radians(parseInt(d) - 11),
+          speeds: []
+        };
+
+        for (var i=0;i<data[d].length;i++) {
+          dir.weight += parseInt(data[d][i]);
+          var s = {
+            weight: data[d][i],
+            base_speed: i*4
+          };
+          dir.speeds.push(s);
+        }
+        this.direction_weight += dir.weight;
+        this.directions.push(dir);
+      }
+    },
+    generateWind: function() {
+      var w = random(this.direction_weight);
+      var acc = 0;
+      var dir = null;
+      for (var i=0;i<this.directions.length;i++) {
+        acc += this.directions[i].weight;
+        if (w <= acc) {
+          dir = this.directions[i];
+          break;
+        }
+      }
+
+      var speed = null;
+      w = random(dir.weight);
+      acc = 0;
+      for (var i=0;i<dir.speeds.length;i++) {
+        acc += dir.speeds[i].weight;
+        if (w <= acc) {
+          speed = dir.speeds[i];
+          break;
+        }
+      }
+
+      this.next_speed = random(4) + speed.base_speed;
+      this.next_direction = radians(random(22)) + dir.heading;
+    },
+    updateWind: function(timeout) {
+      if (this.step_count >= 180) {
+        this.generateWind();
+        this.step_direction = angle_offset(this.next_direction,
+                                           this.airport.wind.angle) / 180;
+        this.step_speed = (this.next_speed - this.airport.wind.speed) / 180;
+        this.step_count = 0;
+      }
+      this.airport.wind.speed += this.step_speed;
+      this.airport.wind.angle += this.step_direction;
+      this.step_count += 1;
+
+      if (timeout)
+        this.timeout = game_timeout(this.updateWind, 60, this, true);
+    },
+    start: function() {
+      this.timeout = game_timeout(this.updateWind, 60, this, true);
+    },
+    stop: function() {
+      if (this.timeout)
+        game_clear_timeout(this.timeout);
+    }
+  };
+});
+
 var Runway=Fiber.extend(function(base) {
   return {
     init: function(options) {
@@ -646,6 +735,8 @@ var Airport=Fiber.extend(function() {
         angle: 0
       };
 
+      this.wind_rose = null;
+
       this.ctr_radius  = 80;
 
       this.parse(options);
@@ -696,6 +787,10 @@ var Airport=Fiber.extend(function() {
         this.wind.angle = radians(this.wind.angle);
       }
 
+      if (data.wind_rose) {
+        this.wind_rose = new zlsa.atc.WindRose(this, data.wind_rose);
+      }
+
       if(data.departures) {
         this.departures = zlsa.atc.DepartureFactory(this, data.departures);
       }
@@ -710,12 +805,14 @@ var Airport=Fiber.extend(function() {
     set: function() {
       this.start = game_time();
       this.updateRunway();
+      if (this.wind_rose) this.wind_rose.start();
       this.addAircraft();
     },
     unset: function() {
       for(var i=0;i<this.arrivals.length;i++) {
         this.arrivals[i].stop();
       }
+      if (this.wind_rose) this.wind_rose.stop();
       this.departures.stop();
       if(this.timeout.runway) game_clear_timeout(this.timeout.runway);
     },

@@ -191,6 +191,50 @@ var Aircraft=Fiber.extend(function() {
 
       this.parse(options);
 
+      this.dataBlock = {
+        html: null,
+        dragging: false,
+        offset: {
+          top: 0,
+          left: 0
+        },
+        start_offset: {
+          top: 0,
+          left: 0
+        },
+        callsign: this.getCallsign(),
+        altitude: '1',
+        speed: '1',
+        trend: '-',
+      };
+      this.dataBlock.html = $("<div class='data-block'><div class='icon'></div><div class='data'>" +
+                              this.getCallsign()+"</div></div>");
+      this.dataBlock.html.click(this, function(e) {
+        input_select(e.data.getCallsign());
+      });
+      this.dataBlock.html.first().css({
+        position: 'absolute',
+        left: round(km(this.position[0])) +
+          round(prop.canvas.contexts['aircraft'].canvas.width / 2) +
+          prop.canvas.panX + 'px',
+        top: -round(km(this.position[1])) +
+          round(prop.canvas.contexts['aircraft'].canvas.height / 2) +
+          prop.canvas.panY + 'px'});
+
+      var ac = this;
+      this.dataBlock.html.draggable({
+        start: function (e, ui) {
+          ac.dataBlock.start_offset = ui.offset;
+          ac.dataBlock.dragging = true;
+        },
+        stop: function (e, ui) {
+          ac.dataBlock.offset.top -= ac.dataBlock.start_offset.top - ui.offset.top;
+          ac.dataBlock.offset.left -= ac.dataBlock.start_offset.left - ui.offset.left;
+          ac.dataBlock.dragging = false;
+        }
+      });
+      $("#data-blocks").append(this.dataBlock.html);
+
       this.html = $("<li class='strip'></li>");
 
       this.html.append("<span class='callsign'>" + this.getCallsign() + "</span>");
@@ -244,6 +288,7 @@ var Aircraft=Fiber.extend(function() {
         this.inside_ctr = true;
     },
     cleanup: function() {
+      this.dataBlock.html.remove();
       this.html.remove();
     },
     // Called when the aircraft crosses the center boundary

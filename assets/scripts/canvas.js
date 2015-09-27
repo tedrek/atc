@@ -209,6 +209,7 @@ function canvas_draw_scale(cc) {
   cc.translate(0.5, 0.5);
 
   cc.lineWidth = 1;
+  cc.beginPath();
   cc.moveTo(prop.canvas.size.width - offset, offset);
   cc.lineTo(prop.canvas.size.width - offset, offset + height);
   cc.lineTo(prop.canvas.size.width - offset - px_length, offset + height);
@@ -495,219 +496,115 @@ function canvas_draw_all_aircraft(cc) {
 }
 
 function canvas_draw_info(cc, aircraft) {
-
-  if(!aircraft.isVisible()) return;
-
-  if(!aircraft.hit) {
-    cc.save();
-
-    cc.textBaseline = "middle";
-
-    var width  = 60;
-    var width2 = width / 2;
-
-    var height  = 35;
-    var height2 = height / 2;
-
-    var bar_width = width / 15;
-    var bar_width2 = bar_width / 2;
-    
-    var ILS_enabled = aircraft.requested.runway && aircraft.category == "arrival";
-    var lock_size = height / 3;
-    var lock_offset = lock_size / 8;
-    var pi = Math.PI;
-    var point1 = lock_size - bar_width2;
-
-  	//angle for the clipping mask
-    var a = point1 - lock_offset;
-    var b = bar_width2;
-  	//var c = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));  
-    var clipping_mask_angle = Math.atan(b / a);
-
-    var match        = false;
-    var almost_match = false;
-
-    if(prop.input.callsign.length > 1 && aircraft.matchCallsign(prop.input.callsign.substr(0, prop.input.callsign.length - 1)))
-      almost_match = true;
-    if(prop.input.callsign.length > 0 && aircraft.matchCallsign(prop.input.callsign))
-      match = true;
-
-    if(match && false) {
-      cc.save();
-      cc.strokeStyle = "rgba(120, 140, 130, 1.0)";
-      cc.lineWidth = 2;
-      var a = [km(aircraft.position[0]), -km(aircraft.position[1])];
-      var h = aircraft.html.outerHeight();
-      var b = [prop.canvas.size.width / 2 - 10, -(prop.canvas.size.height / 2) + aircraft.html.offset().top + h / 2];
-      var angle = Math.atan2(a[0] - b[0], a[1] - b[1]);
-      var distance = 10;
-      cc.beginPath();
-      cc.moveTo(sin(angle) * -distance + a[0], cos(angle) * -distance + a[1]);
-      cc.lineTo(b[0], b[1]);
-      cc.stroke();
-
-      cc.beginPath();
-      cc.moveTo(b[0], b[1] - h / 2);
-      cc.lineTo(b[0], b[1] + h / 2);
-      cc.lineWidth = 4;
-      cc.stroke();
-      cc.restore();
-    }
-
-    cc.translate(round(km(aircraft.position[0])) + prop.canvas.panX, -round(km(aircraft.position[1])) + prop.canvas.panY);
-
-    if(-km(aircraft.position[1]) + prop.canvas.size.height/2 < height * 1.5)
-      cc.translate(0,  height2 + 12);
-    else
-      cc.translate(0, -height2 - 12);
-
-    cc.translate(bar_width / 2, 0);
-
-    if (!aircraft.inside_ctr)
-      cc.fillStyle = "rgba(71, 105, 88, 0.3)";
-    else if (match)
-      cc.fillStyle = "rgba(120, 150, 140, 0.9)";
-    else if(almost_match)
-      cc.fillStyle = "rgba(95, 95, 88, 0.9)";
-    else
-      cc.fillStyle = "rgba(71, 105, 88, 0.9)";
-
-    //Background fill and clip for ILS Lock Indicator
-    if (ILS_enabled)
-    {
-      cc.save();
-      cc.beginPath();
-
-      cc.moveTo(-width2, height2);
-      cc.lineTo(width2, height2);
-      cc.lineTo(width2, -height2);
-      cc.lineTo(-width2, -height2);
-
-      //side cutout
-      cc.lineTo(-width2, -point1);
-      cc.arc(-width2 - bar_width2, -lock_offset, lock_size / 2 + bar_width2, clipping_mask_angle - pi / 2, 0);
-      cc.lineTo(-width2 + lock_size / 2, lock_offset);
-      cc.arc(-width2 - bar_width2, lock_offset, lock_size / 2 + bar_width2, 0, pi / 2 - clipping_mask_angle);
-      cc.closePath();
-
-      cc.strokeStyle = cc.fillStyle;
-      cc.stroke();
-      cc.clip();
-      cc.fillRect(-width2, -height2, width, height);
-
-      cc.restore();
-    }
-    else
-      cc.fillRect(-width2, -height2, width, height);
-
-    var alpha = 0.6;
-    if (!aircraft.inside_ctr) alpha = 0.3;
-    else if (match) alpha = 0.9;
-
-    if(aircraft.category == "departure")
-      cc.fillStyle = "rgba(128, 255, 255, " + alpha + ")";
-    else
-      cc.fillStyle = "rgba(224, 128, 128, " + alpha + ")";
-
-  	//sideBar ILS Lock Indicator
-    if (ILS_enabled)
-    {
-      var pi_slice = pi / 24;
-
-      cc.translate(-width2 - bar_width2, 0);
-
-      cc.lineWidth = bar_width;
-      cc.strokeStyle = cc.fillStyle;
-
-      //top arc
-      cc.beginPath();
-      cc.arc(0, -lock_offset, lock_size / 2, -pi_slice, pi + pi_slice, true);
-      cc.moveTo(0, -lock_size / 2);
-      cc.lineTo(0, -height2);
-      cc.stroke();
-
-      //bottom arc
-      cc.beginPath();
-      cc.arc(0, lock_offset, lock_size / 2, pi_slice, pi - pi_slice);
-      cc.moveTo(0, lock_size - bar_width);
-      cc.lineTo(0, height2);
-      cc.stroke();
-
-      cc.translate(width2 + bar_width2, 0);
-
-      //ILS locked
-      if (aircraft.mode == "landing")
-      {
-        cc.fillStyle = "white";
-        cc.translate(-width2 - bar_width2, 0);
-
-        cc.beginPath();
-        // arc(x,y,radius,startAngle,endAngle, clockwise);
-        cc.arc(0, 0, lock_size / 5, 0, pi * 2);
-        cc.fill();
-        cc.translate(width2 + bar_width2, 0);
-      }
-    }
-    else
-      cc.fillRect(-width2 - bar_width, -height2, bar_width, height);
-
-    if (!aircraft.inside_ctr)
-      cc.fillStyle   = "rgba(255, 255, 255, 0.6)";
-    else if(match)
-      cc.fillStyle   = "rgba(255, 255, 255, 0.9)";
-    else
-      cc.fillStyle   = "rgba(255, 255, 255, 0.8)";
-
-    cc.strokeStyle = cc.fillStyle;
-
-    cc.translate(0, 1);
-
-    var separation  = 8;
-    var line_height = 8;
-
-    cc.lineWidth = 2;
-
-    if(aircraft.trend != 0) {
-      cc.save();
-      if(aircraft.trend < 0) {
-        cc.translate(1, 6.5);
-      } else if(aircraft.trend > 0) {
-        cc.translate(-1, 6.5);
-        cc.scale(-1, -1);
-      }
-      cc.lineJoin  = "round";
-      cc.beginPath();
-
-      cc.moveTo(0,  -5);
-      cc.lineTo(0,   5);
-      cc.lineTo(-3,  2);
-
-      if(aircraft.requested.expedite && aircraft.mode != "landing") {
-        cc.moveTo(0,   5);
-        cc.lineTo(3,   2);
-      }
-
-      cc.stroke();
-      cc.restore();
-    } else {
-      cc.beginPath();
-      cc.moveTo(-4, 7.5);
-      cc.lineTo( 4, 7.5);
-      cc.stroke();
-    }
-
-    cc.textAlign = "right";
-    cc.fillText(lpad(round(aircraft.altitude * 0.01), 2), -separation, line_height);
-
-    cc.textAlign = "left";
-    cc.fillText(lpad(round(aircraft.speed * 0.1), 2), separation, line_height);
-
-    cc.textAlign = "center";
-    cc.fillText(aircraft.getCallsign(), 0, -line_height);
-
-    cc.restore();
+  var html = aircraft.dataBlock.html;
+  if(!aircraft.isVisible()) {
+    html.first().css({
+      visibility: 'hidden'
+    });
+    return;
   }
 
+  var altitude = lpad(round(aircraft.altitude * 0.01), 2);
+  var trend = '-';
+  var speed = lpad(round(aircraft.speed * 0.1), 2);
+
+  if(aircraft.trend != 0) {
+    if(aircraft.trend < 0) {
+      if(aircraft.requested.expedite && aircraft.mode != "landing") {
+        trend = '&#8609;';
+      } else trend = '&darr;';
+    } else if(aircraft.trend > 0) {
+      if(aircraft.requested.expedite && aircraft.mode != "landing") {
+        trend = '&#8607;';
+      } else trend = '&uarr;';
+    }
+  }
+
+  if ((altitude != aircraft.dataBlock.altitude) ||
+      (trend != aircraft.dataBlock.trend) ||
+      (speed != aircraft.dataBlock.speed))
+  {
+    aircraft.dataBlock.altitude = altitude;
+    aircraft.dataBlock.trend = trend;
+    aircraft.dataBlock.speed = speed;
+    html.find('.data').html(aircraft.dataBlock.callsign + '<br>' +
+                           altitude + ' ' + trend + ' ' + speed);
+  }
+
+  if (!aircraft.dataBlock.dragging) {
+    html.first().css({
+      visibility: 'visible',
+      left: round(km(aircraft.position[0])) +
+        aircraft.dataBlock.offset.left +
+        round(cc.canvas.width / 2) +
+        prop.canvas.panX + 'px',
+      top: -round(km(aircraft.position[1])) +
+        aircraft.dataBlock.offset.top +
+        round(cc.canvas.height / 2) +
+        prop.canvas.panY + 'px'});
+  }
+
+  html.toggleClass('inside_ctr', aircraft.inside_ctr);
+  html.toggleClass('arrival', aircraft.category == "arrival");
+  html.toggleClass('departure', aircraft.category == "departure");
+  html.toggleClass('selected',(prop.input.callsign.length > 0 &&
+                               aircraft.matchCallsign(prop.input.callsign)));
+
+  if (aircraft.mode == "landing") {
+    html.find('.icon').toggleClass('locked', true);
+    html.find('.icon').removeClass('approach');
+  }
+  else if (aircraft.requested.runway && aircraft.category == "arrival") {
+    html.find('.icon').toggleClass('approach', true);
+    html.find('.icon').removeClass('locked');
+  }
+  else {
+    html.find('.icon').removeClass('approach locked');
+  }
+
+  // Draw a line from the aircraft to the datablock
+  var datablock_diagonal_angle = Math.atan2(html.width(), html.height());
+  var line_angle = Math.atan2(aircraft.dataBlock.offset.left + (html.width() / 2),
+                              aircraft.dataBlock.offset.top + (html.height() / 2));
+
+  var line_length = 0;
+  if ((abs(line_angle) < datablock_diagonal_angle) ||
+      (abs(line_angle) > (Math.PI - datablock_diagonal_angle)))
+  {
+    // Line impacts a horizontal face of the datablock
+    if (aircraft.dataBlock.offset.top > 12) {
+      line_length = (aircraft.dataBlock.offset.top - 12) /
+        Math.cos(line_angle);
+    }
+    else if (aircraft.dataBlock.offset.top <= (-12 - html.height())) {
+      line_length = (aircraft.dataBlock.offset.top + html.height() + 12) /
+        Math.cos(line_angle);
+    }
+  }
+  else {
+    // Line impacts a vertical face of the datablock
+    if (aircraft.dataBlock.offset.left > 12) {
+      line_length = (aircraft.dataBlock.offset.left - 12) /
+        Math.sin(line_angle);
+    }
+    else if (aircraft.dataBlock.offset.left <= (-12 - html.width())) {
+      line_length = (aircraft.dataBlock.offset.left + html.width() + 12) /
+        Math.sin(line_angle);
+    }
+  }
+
+  if (line_length >= 3) {
+    cc.save();
+    cc.strokeStyle = "rgba(120, 140, 130, 1.0)";
+    cc.lineWidth = 1;
+    cc.translate(round(km(aircraft.position[0])) + prop.canvas.panX,
+                 -round(km(aircraft.position[1])) + prop.canvas.panY);
+    cc.beginPath();
+    cc.moveTo(sin(line_angle) * 9, cos(line_angle) * 9);
+    cc.lineTo(sin(line_angle) * (line_length + 9), cos(line_angle) * (line_length+9));
+    cc.stroke();
+    cc.restore();
+  }
 }
 
 function canvas_draw_all_info(cc) {
@@ -841,6 +738,12 @@ function canvas_update_post() {
     canvas_draw_ctr(cc);
     cc.restore();
 
+    cc.save();
+    cc.globalAlpha = alpha;
+    cc.translate(round(prop.canvas.size.width/2), round(prop.canvas.size.height/2));
+    canvas_draw_runway_labels(cc);
+    cc.restore();
+
     // Compass
 
     cc.font = "bold 10px monoOne, monospace";
@@ -866,12 +769,6 @@ function canvas_update_post() {
     cc.globalAlpha = alpha;
     cc.translate(round(prop.canvas.size.width/2), round(prop.canvas.size.height/2));
     canvas_draw_all_info(cc);
-    cc.restore();
-
-    cc.save();
-    cc.globalAlpha = alpha;
-    cc.translate(round(prop.canvas.size.width/2), round(prop.canvas.size.height/2));
-    canvas_draw_runway_labels(cc);
     cc.restore();
 
     cc.save();

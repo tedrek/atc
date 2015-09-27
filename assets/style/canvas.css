@@ -18,4 +18,62 @@ canvas {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 3;
+}
+
+#viewport {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+#data-blocks {
+  position: absolute;
+  width: calc(100% - 250px);
+  height: calc(100% - 36px);
+  overflow: hidden;
+  top: 0;
+  left: 0;
+}
+
+.data-block {
+    position: absolute;
+    color: white;
+    font-family: inconsolata, monospace;
+    width: 62px;
+    height: 35px;
+    font-size: 12px;
+    z-index: 5;
+    opacity: 0.4;
+}
+
+.data-block .data {
+    position: absolute;
+    left: 19px;
+    width: 44px;
+    height: 35px;
+}
+
+.data-block.inside_ctr {opacity: 0.8;}
+.data-block.inside_ctr.selected {opacity: 1; background: rgba(255,255, 255, 0.2);}
+
+.data-block .icon {
+    width: 18px;
+    height: 35px;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+}
+
+.data-block.departure .icon {
+    background-image: url("../images/departure-default.png");
+}
+.data-block.arrival .icon {
+    background-image: url("../images/arrival-default.png");
+}
+.data-block.arrival .icon.approach {
+    background-image: url("../images/arrival-approach.png");
+}
+.data-block.arrival .icon.locked {
+    background-image: url("../images/arrival-locked.png");
 }

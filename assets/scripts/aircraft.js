@@ -518,7 +518,7 @@ var Aircraft=Fiber.extend(function() {
         this.requested.turn    = null;
         this.requested.hold    = false;
         this.requested.altitude = 20000;
-        this.requested.speed = 480;
+        this.requested.speed = Math.min(this.model.speed.max, 350);
         this.requested.fix = [];
 
         if (this.category == "departure") {
@@ -842,8 +842,10 @@ var Aircraft=Fiber.extend(function() {
 
       if(isNaN(speed)) return ["fail", "speed not understood", "say again"];
 
-//      if(this.mode == "landing")
-//        this.cancelLanding();
+      // Under 10'000 feet cleared altitude assign 250kias
+      if (this.requested.altitude <= 10000) {
+        speed = Math.min(speed, 250);
+      }
 
       this.requested.speed = clamp(this.model.speed.min, speed, this.model.speed.max);
 
@@ -1118,7 +1120,9 @@ var Aircraft=Fiber.extend(function() {
         if (data[keys[i]]) this[keys[i]] = data[keys[i]];
       }
 
-      if(data.speed) this.speed = data.speed;
+      if (data.speed) this.speed = clamp(this.model.speed.min,
+                                         data.speed || this.model.speed.cruise,
+                                         this.model.speed.max);
 
       if(data.heading)  this.requested.heading = data.heading;
       if(data.altitude) this.requested.altitude = data.altitude;
@@ -1392,9 +1396,16 @@ var Aircraft=Fiber.extend(function() {
 
         this.target.altitude = Math.max(1000, this.target.altitude);
 
-        this.target.speed = this.requested.speed;
-        this.target.speed = clamp(this.model.speed.min, this.target.speed, this.model.speed.max);
-
+        // Restrict speed to 250kias under 10'000 feet
+        if (this.altitude <= 10000) {
+          this.target.speed = clamp(this.model.speed.min,
+                                    Math.min(this.requested.speed, 250),
+                                    this.model.speed.max);
+        } else {
+          this.target.speed = clamp(this.model.speed.min,
+                                    this.requested.speed,
+                                    this.model.speed.max);
+        }
       }
 
       if(this.speed < this.model.speed.min) this.target.altitude = 0;

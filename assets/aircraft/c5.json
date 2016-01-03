@@ -14,9 +14,9 @@
     "landing": 3.5
   },
   "speed":{
-    "min":     150,
-    "max":     250,
-    "landing": 160,
+    "min":     125,
+    "max":     300,
+    "landing": 135,
     "cruise":  200
   },
   "capability": {
